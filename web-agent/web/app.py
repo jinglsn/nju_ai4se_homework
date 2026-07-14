@@ -112,6 +112,43 @@ def create_app(workspace: Path | None = None) -> FastAPI:
         dest.write_text(code, encoding="utf-8")
         return {"status": "saved", "filename": filename}
 
+    @app.get("/api/session/{session_id}/file/{filepath:path}")
+    async def get_file_content(session_id: str, filepath: str):
+        try:
+            ws = sessions.get_workspace(session_id)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        target = ws / filepath
+        target = target.resolve()
+        if not str(target).startswith(str(ws.resolve())):
+            raise HTTPException(status_code=403, detail="Path traversal denied")
+        if not target.is_file():
+            raise HTTPException(status_code=404, detail="File not found")
+
+        try:
+            content = target.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            raise HTTPException(status_code=400, detail="Binary file cannot be previewed")
+
+        return {"filename": filepath, "content": content, "size": target.stat().st_size}
+
+    @app.get("/api/session/{session_id}/download/{filepath:path}")
+    async def download_single_file(session_id: str, filepath: str):
+        try:
+            ws = sessions.get_workspace(session_id)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        target = ws / filepath
+        target = target.resolve()
+        if not str(target).startswith(str(ws.resolve())):
+            raise HTTPException(status_code=403, detail="Path traversal denied")
+        if not target.is_file():
+            raise HTTPException(status_code=404, detail="File not found")
+
+        return FileResponse(target, filename=target.name)
+
     @app.get("/api/session/{session_id}/files")
     async def list_files(session_id: str):
         try:
@@ -122,8 +159,11 @@ def create_app(workspace: Path | None = None) -> FastAPI:
         files = []
         for p in ws.rglob("*"):
             if p.is_file() and ".harness" not in p.parts:
-                files.append(str(p.relative_to(ws)))
-        return {"files": sorted(files)}
+                files.append({
+                    "path": str(p.relative_to(ws)).replace("\\", "/"),
+                    "size": p.stat().st_size,
+                })
+        return {"files": sorted(files, key=lambda f: f["path"])}
 
     @app.get("/api/session/{session_id}/download")
     async def download_files(session_id: str):
