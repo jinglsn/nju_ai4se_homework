@@ -39,7 +39,6 @@
     flex-direction: column;
   }
 
-  /* ---- Header ---- */
   .header {
     background: var(--card-bg);
     padding: 16px 32px;
@@ -65,7 +64,6 @@
     top: -1px;
   }
 
-  /* ---- Main Layout ---- */
   .main {
     max-width: 960px;
     width: 100%;
@@ -77,7 +75,6 @@
     gap: 16px;
   }
 
-  /* ---- Card ---- */
   .card {
     background: var(--card-bg);
     border: 1px solid var(--border);
@@ -105,8 +102,12 @@
     border-radius: 10px;
     border: 1px solid var(--border);
   }
+  .card-header .badge.modified {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #fcd34d;
+  }
 
-  /* ---- Controls Row ---- */
   .controls-row {
     display: flex;
     gap: 10px;
@@ -114,7 +115,6 @@
     align-items: center;
   }
 
-  /* ---- Inputs ---- */
   input[type="text"],
   input[type="password"] {
     background: var(--bg);
@@ -139,7 +139,6 @@
   input[type="text"] { flex: 1; min-width: 180px; }
   input[type="file"] { display: none; }
 
-  /* ---- Buttons ---- */
   button, .btn {
     background: var(--primary);
     color: #fff;
@@ -171,25 +170,16 @@
     background: var(--bg);
     border-color: #cbd5e1;
   }
-  button.green, .btn.green {
-    background: var(--success);
-  }
-  button.green:hover, .btn.green:hover {
-    background: var(--success-hover);
-  }
-  button.danger, .btn.danger {
-    background: var(--danger);
-  }
-  button.danger:hover, .btn.danger:hover {
-    background: var(--danger-hover);
-  }
+  button.green, .btn.green { background: var(--success); }
+  button.green:hover, .btn.green:hover { background: var(--success-hover); }
+  button.danger, .btn.danger { background: var(--danger); }
+  button.danger:hover, .btn.danger:hover { background: var(--danger-hover); }
   button.tiny {
     padding: 4px 10px;
     font-size: 12px;
     border-radius: 4px;
   }
 
-  /* ---- File Upload Label ---- */
   label.btn {
     display: inline-flex;
     align-items: center;
@@ -205,7 +195,6 @@
   }
   label.btn:hover { background: var(--bg); border-color: #cbd5e1; }
 
-  /* ---- Code Area ---- */
   .code-area {
     display: none;
     padding: 16px 20px;
@@ -233,17 +222,11 @@
     border-color: var(--border-focus);
     box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
   }
-  .code-area .row {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    margin-bottom: 10px;
-  }
+  .code-area .row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
   .code-area .row input { flex: 1; }
 
   /* ---- File Browser ---- */
-  .file-browser { }
-  .file-tree { max-height: 240px; overflow-y: auto; }
+  .file-tree { max-height: 300px; overflow-y: auto; }
   .file-tree::-webkit-scrollbar { width: 5px; }
   .file-tree::-webkit-scrollbar-track { background: transparent; }
   .file-tree::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
@@ -252,20 +235,23 @@
   .file-item {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     padding: 7px 10px;
     border-radius: 4px;
     transition: background var(--transition);
   }
   .file-item:hover { background: var(--bg); }
   .file-item + .file-item { border-top: 1px solid #f1f5f9; }
+  .file-item.selected { background: #eff6ff; }
 
-  .file-item .icon {
-    width: 16px;
-    text-align: center;
-    font-size: 14px;
+  .file-item input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--primary);
+    cursor: pointer;
     flex-shrink: 0;
   }
+  .file-item .icon { width: 18px; text-align: center; font-size: 14px; flex-shrink: 0; }
   .file-item .name {
     flex: 1;
     font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Courier New', monospace;
@@ -282,11 +268,18 @@
     min-width: 48px;
     text-align: right;
   }
-  .file-item .actions {
-    display: flex;
-    gap: 6px;
+  .file-item .tag {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-weight: 500;
     flex-shrink: 0;
   }
+  .file-item .tag.modified {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  .file-item .actions { display: flex; gap: 4px; flex-shrink: 0; }
 
   .empty-state {
     text-align: center;
@@ -322,7 +315,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 20px;
+    padding: 12px 20px;
     border-bottom: 1px solid var(--border);
   }
   .modal .modal-header .title {
@@ -331,6 +324,29 @@
     font-weight: 600;
     color: var(--text);
   }
+
+  /* Version tabs */
+  .version-tabs { display: flex; gap: 0; }
+  .version-tabs button {
+    padding: 6px 14px;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 500;
+    transition: background var(--transition), color var(--transition);
+  }
+  .version-tabs button:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+  .version-tabs button:last-child { border-radius: 0 var(--radius) var(--radius) 0; border-left: none; }
+  .version-tabs button.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+  .version-tabs button.active + button { border-left: none; }
+
   .modal .modal-body {
     flex: 1;
     overflow-y: auto;
@@ -350,12 +366,7 @@
   .modal .modal-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 
   /* ---- Output Area ---- */
-  .output-card {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-  }
+  .output-card { flex: 1; display: flex; flex-direction: column; min-height: 0; }
   .output {
     flex: 1;
     overflow-y: auto;
@@ -367,13 +378,7 @@
     line-height: 1.7;
     max-height: 420px;
   }
-  .output .line {
-    padding: 1px 0;
-    white-space: pre-wrap;
-    word-break: break-all;
-  }
-
-  /* Log line colors */
+  .output .line { padding: 1px 0; white-space: pre-wrap; word-break: break-all; }
   .output .iteration { color: #93c5fd; font-weight: 600; margin-top: 10px; }
   .output .tool { color: #67e8f9; }
   .output .result { color: #94a3b8; }
@@ -388,16 +393,13 @@
     margin: 10px 0;
     color: #fde047;
   }
-
   .hitl button { margin-left: 8px; margin-top: 6px; }
 
-  /* ---- Scrollbar ---- */
   .output::-webkit-scrollbar { width: 6px; }
   .output::-webkit-scrollbar-track { background: transparent; }
   .output::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
   .output::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
-  /* ---- Status Bar ---- */
   .status {
     padding: 10px 32px;
     background: var(--card-bg);
@@ -474,11 +476,14 @@
   </div>
 
   <!-- File Browser -->
-  <div class="card file-browser" id="fileBrowser">
+  <div class="card" id="fileBrowser">
     <div class="card-header">
       文件目录
       <span style="display:flex;align-items:center;gap:8px;">
         <span class="badge" id="fileCount">0 个文件</span>
+        <span class="badge modified" id="modifiedCount" style="display:none;"></span>
+        <button class="secondary tiny" onclick="selectAllFiles()">全选</button>
+        <button class="secondary tiny" onclick="deselectAllFiles()">取消全选</button>
         <button class="secondary tiny" onclick="refreshFileList()">刷新</button>
       </span>
     </div>
@@ -505,7 +510,11 @@
   <div class="modal">
     <div class="modal-header">
       <span class="title" id="modalTitle">file.py</span>
-      <div style="display:flex;gap:8px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="version-tabs" id="versionTabs">
+          <button class="active" onclick="switchVersion('current')">修改后</button>
+          <button onclick="switchVersion('original')">原始</button>
+        </div>
         <button class="secondary tiny" id="modalDownloadBtn" onclick="downloadFromModal()">下载</button>
         <button class="secondary tiny" onclick="closeModal()">关闭</button>
       </div>
@@ -520,6 +529,7 @@
 let sessionId = null;
 let ws = null;
 let currentModalFile = null;
+let currentModalVersion = 'current';
 
 function appendLine(text, className) {
   const div = document.createElement('div');
@@ -570,15 +580,29 @@ async function connect() {
   }
 }
 
+function getSelectedFiles() {
+  const checks = document.querySelectorAll('#fileTree input[type="checkbox"]:checked');
+  return Array.from(checks).map(cb => cb.value);
+}
+
 async function run() {
   const task = document.getElementById('task').value.trim();
   if (!task) { alert('请输入任务描述'); return; }
+
+  const selected = getSelectedFiles();
+  if (selected.length === 0) {
+    alert('请先在文件目录中勾选要修改的文件');
+    return;
+  }
+
   document.getElementById('btnRun').disabled = true;
   appendLine(`\n> 任务: ${task}`, 'iteration');
+  appendLine(`> 选定文件: ${selected.join(', ')}`, 'tool');
   setStatus('执行中...');
 
+  const selectedParam = selected.map(encodeURIComponent).join(',');
   try {
-    const resp = await fetch(`/api/session/${sessionId}/stream?task=${encodeURIComponent(task)}`);
+    const resp = await fetch(`/api/session/${sessionId}/stream?task=${encodeURIComponent(task)}&selected_files=${selectedParam}`);
     const reader = resp.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
@@ -750,9 +774,11 @@ function fileIcon(filename) {
 async function refreshFileList() {
   const tree = document.getElementById('fileTree');
   const count = document.getElementById('fileCount');
+  const modCount = document.getElementById('modifiedCount');
   if (!sessionId) {
     tree.innerHTML = '<div class="empty-state"><div class="icon">&#128196;</div>请先连接以查看文件</div>';
     count.textContent = '0 个文件';
+    modCount.style.display = 'none';
     return;
   }
   try {
@@ -760,6 +786,14 @@ async function refreshFileList() {
     if (!resp.ok) { tree.innerHTML = '<div class="empty-state">加载失败</div>'; return; }
     const data = await resp.json();
     count.textContent = data.files.length + ' 个文件';
+
+    const modifiedCount = data.files.filter(f => f.modified).length;
+    if (modifiedCount > 0) {
+      modCount.textContent = modifiedCount + ' 已修改';
+      modCount.style.display = '';
+    } else {
+      modCount.style.display = 'none';
+    }
 
     if (data.files.length === 0) {
       tree.innerHTML = '<div class="empty-state"><div class="icon">&#128196;</div>暂无文件，上传或粘贴代码后将在此显示</div>';
@@ -771,31 +805,76 @@ async function refreshFileList() {
       const displayName = name.split('/').pop();
       const depth = (name.match(/\//g) || []).length;
       const indent = '&nbsp;&nbsp;'.repeat(depth);
+      const modifiedTag = f.modified ? '<span class="tag modified">已修改</span>' : '';
+      const encoded = encodeURIComponent(name);
       return `<div class="file-item">
+        <input type="checkbox" value="${encoded}" checked onchange="onFileCheck(this)">
         <span class="icon">${fileIcon(name)}</span>
         <span class="name">${indent}${displayName}</span>
+        ${modifiedTag}
         <span class="size">${formatSize(f.size)}</span>
         <span class="actions">
-          <button class="secondary tiny" onclick="viewFile('${encodeURIComponent(name)}')">查看</button>
-          <button class="secondary tiny" onclick="downloadSingleFile('${encodeURIComponent(name)}')">下载</button>
+          <button class="secondary tiny" onclick="viewFile('${encoded}')">查看</button>
+          <button class="secondary tiny" onclick="downloadSingleFile('${encoded}')">下载</button>
         </span>
       </div>`;
     }).join('');
   } catch (e) {}
 }
 
+function onFileCheck(cb) {
+  const row = cb.closest('.file-item');
+  if (cb.checked) {
+    row.classList.add('selected');
+  } else {
+    row.classList.remove('selected');
+  }
+}
+
+function selectAllFiles() {
+  document.querySelectorAll('#fileTree input[type="checkbox"]').forEach(cb => {
+    cb.checked = true;
+    cb.closest('.file-item').classList.add('selected');
+  });
+}
+
+function deselectAllFiles() {
+  document.querySelectorAll('#fileTree input[type="checkbox"]').forEach(cb => {
+    cb.checked = false;
+    cb.closest('.file-item').classList.remove('selected');
+  });
+}
+
 async function viewFile(filename) {
   if (!sessionId) return;
+  currentModalFile = filename;
+  currentModalVersion = 'current';
+  document.getElementById('modalTitle').textContent = decodeURIComponent(filename);
+  document.getElementById('modalOverlay').classList.add('open');
+  document.querySelector('#versionTabs button:nth-child(1)').classList.add('active');
+  document.querySelector('#versionTabs button:nth-child(2)').classList.remove('active');
+  await loadModalContent('current');
+}
+
+async function switchVersion(version) {
+  currentModalVersion = version;
+  document.querySelector('#versionTabs button:nth-child(1)').classList.toggle('active', version === 'current');
+  document.querySelector('#versionTabs button:nth-child(2)').classList.toggle('active', version === 'original');
+  await loadModalContent(version);
+}
+
+async function loadModalContent(version) {
+  document.getElementById('modalContent').textContent = '加载中...';
   try {
-    const resp = await fetch(`/api/session/${sessionId}/file/${filename}`);
-    if (!resp.ok) { alert('无法读取文件'); return; }
+    const resp = await fetch(`/api/session/${sessionId}/file/${currentModalFile}?version=${version}`);
+    if (!resp.ok) {
+      document.getElementById('modalContent').textContent = version === 'original' ? '（无原始版本）' : '无法读取文件';
+      return;
+    }
     const data = await resp.json();
-    currentModalFile = data.filename;
-    document.getElementById('modalTitle').textContent = data.filename;
     document.getElementById('modalContent').textContent = data.content;
-    document.getElementById('modalOverlay').classList.add('open');
   } catch (e) {
-    alert('读取失败: ' + e.message);
+    document.getElementById('modalContent').textContent = '加载失败: ' + e.message;
   }
 }
 
@@ -805,7 +884,10 @@ function downloadSingleFile(filename) {
 }
 
 function downloadFromModal() {
-  if (currentModalFile) downloadSingleFile(currentModalFile);
+  if (currentModalFile) {
+    const url = `/api/session/${sessionId}/download/${currentModalFile}?version=${currentModalVersion}`;
+    window.open(url, '_blank');
+  }
 }
 
 function closeModal() {

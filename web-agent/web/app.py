@@ -14,6 +14,33 @@ class CreateSessionRequest(BaseModel):
     api_key: str
 
 
+def _save_original(workspace: Path, rel_path: str) -> None:
+    """Save a copy of the file in .originals/ for before/after comparison."""
+    src = workspace / rel_path
+    if not src.is_file():
+        return
+    dest = workspace / ".originals" / rel_path
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(src, dest)
+
+
+def _get_original_path(workspace: Path, filepath: str) -> Path | None:
+    """Get the path to the original copy of a file, if it exists."""
+    orig = workspace / ".originals" / filepath
+    return orig if orig.is_file() else None
+
+
+def _is_modified(workspace: Path, filepath: str) -> bool:
+    """Check if the current file differs from its original."""
+    orig = _get_original_path(workspace, filepath)
+    if orig is None:
+        return False
+    current = workspace / filepath
+    if not current.is_file():
+        return False
+    return orig.read_bytes() != current.read_bytes()
+
+
 def create_app(workspace: Path | None = None) -> FastAPI:
     app = FastAPI(title="Web Agent Harness")
     sessions = SessionManager()
@@ -30,14 +57,16 @@ def create_app(workspace: Path | None = None) -> FastAPI:
         return {"session_id": sid}
 
     @app.get("/api/session/{session_id}/stream")
-    async def run_stream(session_id: str, task: str = Query(...)):
+    async def run_stream(session_id: str, task: str = Query(...), selected_files: str = Query("")):
         try:
             loop = sessions.get_loop(session_id)
         except KeyError:
             raise HTTPException(status_code=404, detail="Session not found")
 
+        file_list = [f.strip() for f in selected_files.split(",") if f.strip()]
+
         async def event_generator():
-            async for event in loop.run_stream(task):
+            async for event in loop.run_stream(task, selected_files=file_list):
                 yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
             yield "data: [DONE]\n\n"
 
@@ -96,11 +125,14 @@ def create_app(workspace: Path | None = None) -> FastAPI:
             content = await f.read()
             if f.filename and f.filename.lower().endswith(".zip"):
                 extracted = _extract_zip(content, ws)
+                for name in extracted:
+                    _save_original(ws, name)
                 saved.extend(extracted)
             else:
                 dest = ws / f.filename
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 dest.write_bytes(content)
+                _save_original(ws, f.filename)
                 saved.append(f.filename)
         return {"status": "uploaded", "files": saved}
 
@@ -114,16 +146,23 @@ def create_app(workspace: Path | None = None) -> FastAPI:
         dest = ws / filename
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(code, encoding="utf-8")
+        _save_original(ws, filename)
         return {"status": "saved", "filename": filename}
 
     @app.get("/api/session/{session_id}/file/{filepath:path}")
-    async def get_file_content(session_id: str, filepath: str):
+    async def get_file_content(session_id: str, filepath: str, version: str = Query("current")):
         try:
             ws = sessions.get_workspace(session_id)
         except KeyError:
             raise HTTPException(status_code=404, detail="Session not found")
 
-        target = ws / filepath
+        if version == "original":
+            target = _get_original_path(ws, filepath)
+            if target is None:
+                raise HTTPException(status_code=404, detail="Original not found")
+        else:
+            target = ws / filepath
+
         target = target.resolve()
         if not str(target).startswith(str(ws.resolve())):
             raise HTTPException(status_code=403, detail="Path traversal denied")
@@ -135,16 +174,28 @@ def create_app(workspace: Path | None = None) -> FastAPI:
         except UnicodeDecodeError:
             raise HTTPException(status_code=400, detail="Binary file cannot be previewed")
 
-        return {"filename": filepath, "content": content, "size": target.stat().st_size}
+        return {
+            "filename": filepath,
+            "content": content,
+            "size": target.stat().st_size,
+            "version": version,
+            "modified": _is_modified(ws, filepath) if version == "current" else False,
+        }
 
     @app.get("/api/session/{session_id}/download/{filepath:path}")
-    async def download_single_file(session_id: str, filepath: str):
+    async def download_single_file(session_id: str, filepath: str, version: str = Query("current")):
         try:
             ws = sessions.get_workspace(session_id)
         except KeyError:
             raise HTTPException(status_code=404, detail="Session not found")
 
-        target = ws / filepath
+        if version == "original":
+            target = _get_original_path(ws, filepath)
+            if target is None:
+                raise HTTPException(status_code=404, detail="Original not found")
+        else:
+            target = ws / filepath
+
         target = target.resolve()
         if not str(target).startswith(str(ws.resolve())):
             raise HTTPException(status_code=403, detail="Path traversal denied")
@@ -162,10 +213,13 @@ def create_app(workspace: Path | None = None) -> FastAPI:
 
         files = []
         for p in ws.rglob("*"):
-            if p.is_file() and ".harness" not in p.parts:
+            if p.is_file() and ".originals" not in p.parts and ".harness" not in p.parts:
+                rel = str(p.relative_to(ws)).replace("\\", "/")
                 files.append({
-                    "path": str(p.relative_to(ws)).replace("\\", "/"),
+                    "path": rel,
                     "size": p.stat().st_size,
+                    "has_original": _get_original_path(ws, rel) is not None,
+                    "modified": _is_modified(ws, rel),
                 })
         return {"files": sorted(files, key=lambda f: f["path"])}
 
@@ -179,7 +233,7 @@ def create_app(workspace: Path | None = None) -> FastAPI:
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
             for p in ws.rglob("*"):
-                if p.is_file() and ".harness" not in p.parts:
+                if p.is_file() and ".originals" not in p.parts and ".harness" not in p.parts:
                     zf.write(p, p.relative_to(ws))
         buf.seek(0)
 

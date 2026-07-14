@@ -125,12 +125,12 @@ class AgentLoop:
                     logs=logs,
                 )
 
-    def _build_initial_messages(self, task: str, memory_context: str) -> list[dict]:
+    def _build_initial_messages(self, task: str, memory_context: str, selected_files: list[str] | None = None) -> list[dict]:
         # List workspace files for context
         workspace_files = []
         try:
             for p in self.workspace.rglob("*"):
-                if p.is_file() and ".harness" not in p.parts:
+                if p.is_file() and ".harness" not in p.parts and ".originals" not in p.parts:
                     workspace_files.append(str(p.relative_to(self.workspace)))
         except Exception:
             pass
@@ -151,6 +151,13 @@ class AgentLoop:
             "The search string must match the code exactly, including whitespace. "
             "Fix one bug at a time, then re-run tests to verify before moving on."
         )
+        if selected_files:
+            system_prompt += (
+                f"\n\n[Selected Files - ONLY modify these]\n"
+                + "\n".join(f"  - {f}" for f in selected_files)
+                + "\n\nCRITICAL: You MUST ONLY modify the files listed above. "
+                "Do NOT edit any other files even if you find bugs in them."
+            )
         if memory_context:
             system_prompt += f"\n\n[Project Context]\n{memory_context}"
         system_prompt += f"\n\nWorkspace: {self.workspace}\nFiles in workspace:\n{file_listing}"
@@ -177,13 +184,13 @@ class AgentLoop:
             feedback_text += f"\n- {f.type} @ {f.file}:{f.line}: {f.strategy}"
         messages.append({"role": "system", "content": feedback_text})
 
-    async def run_stream(self, task: str):
+    async def run_stream(self, task: str, selected_files: list[str] | None = None):
         """Async generator: yield events as agent runs for web streaming."""
         max_iterations = self.config.get("max_iterations", 10)
         judge = StopJudge(max_iterations=max_iterations)
 
         memory_context = self.memory_retriever.retrieve(task, max_chars=500)
-        messages = self._build_initial_messages(task, memory_context)
+        messages = self._build_initial_messages(task, memory_context, selected_files)
         previous_test_output = None
         iteration = 0
 
