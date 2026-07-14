@@ -7,7 +7,7 @@ from src.config.keyring import get_api_key
 class RealLLM(LLMBackend):
     def __init__(self, config: dict):
         llm_config = config.get("llm", {})
-        self.model = llm_config.get("model", "glm-5.2")
+        self.model = llm_config.get("model", "deepseek-v4-pro")
         self.base_url = llm_config.get("base_url", "https://njusehub.info/v1")
         self.timeout = llm_config.get("timeout", 30)
         self.max_retries = llm_config.get("max_retries", 3)
@@ -46,7 +46,7 @@ class RealLLM(LLMBackend):
                                 args = json.loads(func["arguments"])
                             except (json.JSONDecodeError, KeyError):
                                 args = {}
-                            tool_calls.append(ToolCall(name=func["name"], args=args))
+                            tool_calls.append(ToolCall(name=func["name"], args=args, id=tc.get("id")))
                     return LLMResponse(text=text, tool_calls=tool_calls)
                 else:
                     return LLMResponse(error=f"API error {response.status_code}: {response.text[:500]}")

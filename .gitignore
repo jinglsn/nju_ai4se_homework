@@ -15,6 +15,9 @@ build/
 # Harness runtime
 .harness/
 
+# Demo project (not for commit)
+demo-project/
+
 # OS
 .DS_Store
 Thumbs.db

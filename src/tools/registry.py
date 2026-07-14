@@ -22,10 +22,28 @@ class ToolRegistry:
         self._tools[name] = {"func": func, "params": params}
 
     def list_tools(self) -> list[dict]:
-        return [
-            {"name": name, "parameters": info["params"]}
-            for name, info in self._tools.items()
-        ]
+        tools = []
+        for name, info in self._tools.items():
+            properties = {}
+            required = []
+            for pname, ptype in info["params"].items():
+                is_optional = "?" in ptype
+                clean_type = ptype.replace("?", "")
+                type_map = {"str": "string", "int": "integer", "bool": "boolean", "float": "number"}
+                json_type = type_map.get(clean_type, "string")
+                properties[pname] = {"type": json_type}
+                if not is_optional:
+                    required.append(pname)
+            tools.append({
+                "name": name,
+                "description": f"Tool: {name}",
+                "parameters": {
+                    "type": "object",
+                    "properties": properties,
+                    "required": required,
+                },
+            })
+        return tools
 
     def execute(self, name: str, args: dict[str, Any]) -> ToolResult:
         if name not in self._tools:

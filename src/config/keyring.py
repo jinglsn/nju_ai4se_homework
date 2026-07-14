@@ -1,3 +1,4 @@
+import os
 import keyring
 
 DEFAULT_SERVICE = "harness-llm"
@@ -11,7 +12,10 @@ def set_api_key(service: str = DEFAULT_SERVICE, key: str | None = None) -> None:
 
 
 def get_api_key(service: str = DEFAULT_SERVICE) -> str | None:
-    return keyring.get_password(service, "api_key")
+    key = keyring.get_password(service, "api_key")
+    if key:
+        return key
+    return os.environ.get("HARNESS_API_KEY")
 
 
 def clear_api_key(service: str = DEFAULT_SERVICE) -> None:

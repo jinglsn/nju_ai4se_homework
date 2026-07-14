@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+import json
 from pathlib import Path
 from src.llm.base import LLMBackend
 from src.tools.registry import ToolRegistry
@@ -57,7 +58,19 @@ class AgentLoop:
             test_passed = False
 
             if response.tool_calls:
-                for tc in response.tool_calls:
+                # 把 assistant 消息（含 tool_calls）追加到对话
+                assistant_msg = {"role": "assistant", "content": response.text or ""}
+                assistant_msg["tool_calls"] = [
+                    {
+                        "id": tc.id or f"call_{i}",
+                        "type": "function",
+                        "function": {"name": tc.name, "arguments": json.dumps(tc.args, ensure_ascii=False)},
+                    }
+                    for i, tc in enumerate(response.tool_calls)
+                ]
+                messages.append(assistant_msg)
+
+                for i, tc in enumerate(response.tool_calls):
                     intercept = classify_action(tc.name, tc.args)
                     decision = self.hitl.check(intercept)
 
@@ -68,6 +81,13 @@ class AgentLoop:
 
                     result = self.tools.execute(tc.name, tc.args)
                     logs.append(f"Tool {tc.name}: {result.success}")
+
+                    # 把工具结果追加到对话
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tc.id or f"call_{i}",
+                        "content": result.output[:2000] if result.output else result.error or "",
+                    })
 
                     self.memory_store.add_audit_entry({
                         "action": "tool_exec",
@@ -105,7 +125,11 @@ class AgentLoop:
                 )
 
     def _build_initial_messages(self, task: str, memory_context: str) -> list[dict]:
-        system_prompt = "You are a coding agent. Your goal is to fix failing tests."
+        system_prompt = (
+            "You are a coding agent. "
+            "Use the available tools to fix bugs and edit files. "
+            "When you know what to change, call edit_file immediately."
+        )
         if memory_context:
             system_prompt += f"\n\n[Project Context]\n{memory_context}"
         system_prompt += f"\nWorkspace: {self.workspace}"

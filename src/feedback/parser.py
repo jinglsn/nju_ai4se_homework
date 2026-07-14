@@ -11,18 +11,20 @@ def parse_test_output(output: str) -> list[dict]:
         return failures
 
     # 方法1: pytest 格式 (FAILED 行 + FAILURES 分隔符)
-    fail_pattern = re.compile(r"^(.+?)\s+FAILED", re.MULTILINE)
+    fail_pattern = re.compile(r"^(.+?)[ \t]+FAILED", re.MULTILINE)
     fail_files = fail_pattern.findall(output)
 
     failure_section = re.split(r"=+\s+FAILURES\s+=+", output)
 
     if len(failure_section) >= 2:
-        failure_text = failure_section[1]
+        failure_text = failure_section[1].replace("\\", "/")
         for fname in fail_files:
             fname_clean = fname.strip()
             file_name = fname_clean.split("::")[0] if "::" in fname_clean else fname_clean
             failure_info = {"file": file_name, "line": None, "message": ""}
-            line_match = re.search(rf"{re.escape(fname_clean)}.*?:(\d+):", failure_text)
+            line_match = re.search(rf"{re.escape(file_name)}.*?:(\d+):", failure_text)
+            if not line_match:
+                line_match = re.search(rf"{re.escape(fname_clean)}.*?:(\d+):", failure_text)
             if line_match:
                 failure_info["line"] = int(line_match.group(1))
             failure_info["message"] = failure_text[:500].strip()

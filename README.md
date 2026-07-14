@@ -107,13 +107,16 @@ tests/             # 单元测试 (110 tests)
 - 绝不硬编码、不提交 Git、不写入日志
 - 记忆系统写盘前自动过滤敏感信息（API Key、Token、密码等）
 
-**已知限制**：系统 keyring 在 Docker 容器中通常不可用，容器化部署需通过环境变量注入。
+**已知限制**：系统 keyring 在 Docker 容器中不可用，需通过环境变量 `HARNESS_API_KEY` 注入。`get_api_key()` 会优先读 keyring，失败时自动回退到环境变量。
 
 ## Docker 部署
 
 ```bash
 docker build -t harness .
+# 凭据通过环境变量注入（容器内 keyring 不可用）
 docker run -e HARNESS_API_KEY="your-key" harness run "your task"
+# 启动 Web 仪表盘
+docker run -e HARNESS_API_KEY="your-key" -p 8000:8000 harness web
 ```
 
 ## 机制演示
