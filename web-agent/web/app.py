@@ -94,10 +94,14 @@ def create_app(workspace: Path | None = None) -> FastAPI:
         saved = []
         for f in files:
             content = await f.read()
-            dest = ws / f.filename
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            dest.write_bytes(content)
-            saved.append(f.filename)
+            if f.filename and f.filename.lower().endswith(".zip"):
+                extracted = _extract_zip(content, ws)
+                saved.extend(extracted)
+            else:
+                dest = ws / f.filename
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_bytes(content)
+                saved.append(f.filename)
         return {"status": "uploaded", "files": saved}
 
     @app.post("/api/session/{session_id}/paste")
@@ -186,6 +190,24 @@ def create_app(workspace: Path | None = None) -> FastAPI:
         )
 
     return app
+
+
+def _extract_zip(content: bytes, workspace: Path) -> list[str]:
+    """Extract a ZIP file into workspace, guarding against path traversal."""
+    extracted = []
+    with zipfile.ZipFile(io.BytesIO(content)) as zf:
+        workspace_resolved = workspace.resolve()
+        for entry in zf.namelist():
+            member = zf.getinfo(entry)
+            if member.is_dir():
+                continue
+            dest = (workspace / entry).resolve()
+            if not str(dest).startswith(str(workspace_resolved)):
+                continue
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(zf.read(entry))
+            extracted.append(entry)
+    return extracted
 
 
 def _load_html() -> str:
