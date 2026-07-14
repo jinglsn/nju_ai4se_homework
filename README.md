@@ -12,7 +12,7 @@
 ### 安装
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/jinglsn/nju_ai4se_homework.git
 cd ai4se
 pip install -r requirements.txt
 pip install -e .
@@ -53,6 +53,8 @@ python -m uvicorn web.app:app --reload --port 8000
 ```
 
 浏览器打开 `http://localhost:8000` 查看项目状态。
+
+线上部署: **https://nju-ai4se-homework.onrender.com/**
 
 ### 运行测试
 
