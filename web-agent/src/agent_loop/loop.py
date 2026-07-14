@@ -126,14 +126,34 @@ class AgentLoop:
                 )
 
     def _build_initial_messages(self, task: str, memory_context: str) -> list[dict]:
+        # List workspace files for context
+        workspace_files = []
+        try:
+            for p in self.workspace.rglob("*"):
+                if p.is_file() and ".harness" not in p.parts:
+                    workspace_files.append(str(p.relative_to(self.workspace)))
+        except Exception:
+            pass
+
+        file_listing = "\n".join(f"  - {f}" for f in sorted(workspace_files)) if workspace_files else "  (empty)"
+
         system_prompt = (
-            "You are a coding agent. "
-            "Use the available tools to fix bugs and edit files. "
-            "When you know what to change, call edit_file immediately."
+            "You are a coding agent that fixes bugs in software projects. "
+            "Follow this workflow:\n"
+            "1. Explore the workspace: use list_dir '.' to see the project structure\n"
+            "2. Read the relevant source files and test files to understand the code\n"
+            "3. Run the tests with run_shell to see what's failing (e.g. 'python -m pytest tests/ -v')\n"
+            "4. Analyze the test failures and identify the bugs in the source code\n"
+            "5. Use edit_file to fix each bug — make precise, minimal changes\n"
+            "6. Run the tests again to verify all tests pass\n"
+            "7. If tests still fail, repeat from step 4\n\n"
+            "IMPORTANT: Always use edit_file (search+replace) rather than write_file to modify existing files. "
+            "The search string must match the code exactly, including whitespace. "
+            "Fix one bug at a time, then re-run tests to verify before moving on."
         )
         if memory_context:
             system_prompt += f"\n\n[Project Context]\n{memory_context}"
-        system_prompt += f"\nWorkspace: {self.workspace}"
+        system_prompt += f"\n\nWorkspace: {self.workspace}\nFiles in workspace:\n{file_listing}"
         return [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": task},

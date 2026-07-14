@@ -21,12 +21,18 @@ class SessionManager:
 
     def _build_registry(self) -> ToolRegistry:
         registry = ToolRegistry()
-        registry.register("read_file", read_file, {"path": "str", "start_line": "int?", "end_line": "int?"})
-        registry.register("write_file", write_file, {"path": "str", "content": "str"})
-        registry.register("edit_file", edit_file, {"path": "str", "search": "str", "replace": "str"})
-        registry.register("grep", grep, {"pattern": "str", "path": "str"})
-        registry.register("list_dir", list_dir, {"path": "str"})
-        registry.register("run_shell", run_shell, {"command": "str", "timeout": "int?"})
+        registry.register("read_file", read_file, {"path": "str", "start_line": "int?", "end_line": "int?"},
+                         description="Read a file from the workspace. Returns file content with line numbers.")
+        registry.register("write_file", write_file, {"path": "str", "content": "str"},
+                         description="Write content to a file. Creates parent directories if needed. Overwrites existing files.")
+        registry.register("edit_file", edit_file, {"path": "str", "search": "str", "replace": "str"},
+                         description="Search and replace text in a file. Use replace_all=True to replace all occurrences.")
+        registry.register("grep", grep, {"pattern": "str", "path": "str"},
+                         description="Search for a regex pattern in files under the given directory.")
+        registry.register("list_dir", list_dir, {"path": "str"},
+                         description="List files and directories in the given path. Use '.' to list the workspace root.")
+        registry.register("run_shell", run_shell, {"command": "str", "timeout": "int?"},
+                         description="Execute a shell command in the workspace. Use this to run pytest, go test, etc.")
         return registry
 
     def create_session(self, api_key: str) -> str:
@@ -34,7 +40,7 @@ class SessionManager:
         workspace = self.base_dir / session_id
         workspace.mkdir(parents=True, exist_ok=True)
         llm = RealLLM({}, api_key=api_key)
-        loop = AgentLoop(llm=llm, tools=self._registry, workspace=workspace, config={})
+        loop = AgentLoop(llm=llm, tools=self._registry, workspace=workspace, config={"max_iterations": 20})
         loop.hitl = HITLStateMachine(web_mode=True, timeout=60)
         self._sessions[session_id] = {
             "workspace": workspace,

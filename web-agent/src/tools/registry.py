@@ -18,8 +18,8 @@ class ToolRegistry:
     def tool_count(self) -> int:
         return len(self._tools)
 
-    def register(self, name: str, func: Callable, params: dict[str, str]) -> None:
-        self._tools[name] = {"func": func, "params": params}
+    def register(self, name: str, func: Callable, params: dict[str, str], description: str = "") -> None:
+        self._tools[name] = {"func": func, "params": params, "description": description}
 
     def list_tools(self) -> list[dict]:
         tools = []
@@ -36,7 +36,7 @@ class ToolRegistry:
                     required.append(pname)
             tools.append({
                 "name": name,
-                "description": f"Tool: {name}",
+                "description": info.get("description") or f"Tool: {name}",
                 "parameters": {
                     "type": "object",
                     "properties": properties,
