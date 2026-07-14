@@ -1,7 +1,11 @@
 import json
+import shutil
+import tempfile
+import zipfile
+import io
 from pathlib import Path
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query, UploadFile, File, Form
+from fastapi.responses import HTMLResponse, StreamingResponse, FileResponse
 from pydantic import BaseModel
 from web.session_manager import SessionManager
 
@@ -79,6 +83,67 @@ def create_app(workspace: Path | None = None) -> FastAPI:
             "status": "running",
             "active_sessions": len(sessions._sessions),
         }
+
+    @app.post("/api/session/{session_id}/upload")
+    async def upload_files(session_id: str, files: list[UploadFile] = File(...)):
+        try:
+            ws = sessions.get_workspace(session_id)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        saved = []
+        for f in files:
+            content = await f.read()
+            dest = ws / f.filename
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(content)
+            saved.append(f.filename)
+        return {"status": "uploaded", "files": saved}
+
+    @app.post("/api/session/{session_id}/paste")
+    async def paste_code(session_id: str, filename: str = Form(...), code: str = Form(...)):
+        try:
+            ws = sessions.get_workspace(session_id)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        dest = ws / filename
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(code, encoding="utf-8")
+        return {"status": "saved", "filename": filename}
+
+    @app.get("/api/session/{session_id}/files")
+    async def list_files(session_id: str):
+        try:
+            ws = sessions.get_workspace(session_id)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        files = []
+        for p in ws.rglob("*"):
+            if p.is_file() and ".harness" not in p.parts:
+                files.append(str(p.relative_to(ws)))
+        return {"files": sorted(files)}
+
+    @app.get("/api/session/{session_id}/download")
+    async def download_files(session_id: str):
+        try:
+            ws = sessions.get_workspace(session_id)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            for p in ws.rglob("*"):
+                if p.is_file() and ".harness" not in p.parts:
+                    zf.write(p, p.relative_to(ws))
+        buf.seek(0)
+
+        return StreamingResponse(
+            buf,
+            media_type="application/zip",
+            headers={"Content-Disposition": "attachment; filename=modified_code.zip"},
+        )
 
     return app
 
