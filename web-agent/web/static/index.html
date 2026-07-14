@@ -242,7 +242,7 @@
   .code-area .row input { flex: 1; }
 
   /* ---- File Browser ---- */
-  .file-browser { display: none; }
+  .file-browser { }
   .file-tree { max-height: 240px; overflow-y: auto; }
   .file-tree::-webkit-scrollbar { width: 5px; }
   .file-tree::-webkit-scrollbar-track { background: transparent; }
@@ -564,7 +564,6 @@ async function connect() {
 
     setStatus(`已连接 (会话: ${sessionId})`);
     appendLine('> 会话已创建，可以输入任务执行', 'stop');
-    document.getElementById('fileBrowser').style.display = 'block';
     refreshFileList();
   } catch (e) {
     alert('连接失败: ' + e.message);
@@ -749,13 +748,17 @@ function fileIcon(filename) {
 }
 
 async function refreshFileList() {
-  if (!sessionId) return;
+  const tree = document.getElementById('fileTree');
+  const count = document.getElementById('fileCount');
+  if (!sessionId) {
+    tree.innerHTML = '<div class="empty-state"><div class="icon">&#128196;</div>请先连接以查看文件</div>';
+    count.textContent = '0 个文件';
+    return;
+  }
   try {
     const resp = await fetch(`/api/session/${sessionId}/files`);
-    if (!resp.ok) return;
+    if (!resp.ok) { tree.innerHTML = '<div class="empty-state">加载失败</div>'; return; }
     const data = await resp.json();
-    const tree = document.getElementById('fileTree');
-    const count = document.getElementById('fileCount');
     count.textContent = data.files.length + ' 个文件';
 
     if (data.files.length === 0) {
